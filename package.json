@@ -1,0 +1,17 @@
+{
+  "name": "pingwatch-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "packageManager": "pnpm@11.25.0",
+  "scripts": {
+    "build": "pnpm --recursive run build",
+    "dev": "pnpm --filter @pingwatch/web dev",
+    "dev:api": "pnpm --filter @pingwatch/api dev",
+    "dev:worker": "pnpm --filter @pingwatch/worker dev",
+    "typecheck": "pnpm --recursive run typecheck",
+    "lint": "pnpm --recursive run lint"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.5"
+  }
+}
