@@ -1,15 +1,14 @@
 {
-  "name": "pingwatch-monorepo",
+  "name": "autotrace",
   "version": "1.0.0",
   "private": true,
   "packageManager": "pnpm@11.25.0",
   "scripts": {
-    "build": "pnpm --recursive run build",
-    "dev": "pnpm --filter @pingwatch/web dev",
-    "dev:api": "pnpm --filter @pingwatch/api dev",
-    "dev:worker": "pnpm --filter @pingwatch/worker dev",
-    "typecheck": "pnpm --recursive run typecheck",
-    "lint": "pnpm --recursive run lint"
+    "dev": "pnpm --dir node_modules/apps/web dev",
+    "dev:api": "uvicorn autotrace.api:app --reload --port 8080",
+    "dev:worker": "python -m autotrace.worker",
+    "test:python": "python -m pytest autotrace/tests",
+    "build": "python -m compileall autotrace"
   },
   "devDependencies": {
     "typescript": "^5.4.5"

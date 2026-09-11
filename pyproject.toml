@@ -1,0 +1,14 @@
+[project]
+name = "autotrace"
+version = "1.0.0"
+requires-python = ">=3.11"
+dependencies = [
+  "fastapi==0.115.6",
+  "httpx==0.28.1",
+  "playwright==1.49.1",
+  "python-dotenv==1.0.1",
+  "uvicorn[standard]==0.34.0",
+]
+
+[project.optional-dependencies]
+test = ["pytest==9.1.1"]

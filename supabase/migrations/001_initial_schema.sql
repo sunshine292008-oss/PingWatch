@@ -31,7 +31,7 @@ CREATE TABLE IF NOT EXISTS monitored_sites (
   user_id           UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
   name              TEXT NOT NULL,
   url               TEXT NOT NULL,
-  check_interval_s  INTEGER NOT NULL DEFAULT 60,  -- seconds between checks
+  check_interval_s  INTEGER NOT NULL DEFAULT 300 CHECK (check_interval_s IN (300, 900, 3600)),
   is_active         BOOLEAN NOT NULL DEFAULT TRUE,
   last_status       TEXT,            -- 'up' | 'down' | 'unknown'
   last_checked_at   TIMESTAMPTZ,
@@ -46,9 +46,16 @@ CREATE TABLE IF NOT EXISTS monitor_checks (
   is_up           BOOLEAN NOT NULL,
   status_code     INTEGER,           -- e.g. 200, 500, NULL if timeout
   response_ms     INTEGER,           -- round-trip in milliseconds
-  error_message   TEXT               -- e.g. "ECONNREFUSED", "timeout"
+  error_message   TEXT,              -- e.g. "ECONNREFUSED", "timeout"
+  page_url        TEXT,
+  screenshot_path TEXT,
+  evidence        JSONB NOT NULL DEFAULT '{}'::jsonb
 );
 CREATE INDEX IF NOT EXISTS idx_checks_site_time ON monitor_checks(site_id, checked_at DESC);
+
+ALTER TABLE monitor_checks ADD COLUMN IF NOT EXISTS page_url TEXT;
+ALTER TABLE monitor_checks ADD COLUMN IF NOT EXISTS screenshot_path TEXT;
+ALTER TABLE monitor_checks ADD COLUMN IF NOT EXISTS evidence JSONB NOT NULL DEFAULT '{}'::jsonb;
 
 -- INCIDENTS: tracks a contiguous downtime window
 CREATE TABLE IF NOT EXISTS incidents (
@@ -56,9 +63,32 @@ CREATE TABLE IF NOT EXISTS incidents (
   site_id       UUID NOT NULL REFERENCES monitored_sites(id) ON DELETE CASCADE,
   started_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   resolved_at   TIMESTAMPTZ,         -- NULL = still active
-  root_cause    TEXT                 -- last error message that triggered it
+  title         TEXT,
+  severity      TEXT NOT NULL DEFAULT 'medium' CHECK (severity IN ('info', 'low', 'medium', 'high', 'critical')),
+  root_cause    TEXT,
+  page_url      TEXT,
+  screenshot_path TEXT,
+  evidence      JSONB NOT NULL DEFAULT '{}'::jsonb,
+  diagnosis     JSONB NOT NULL DEFAULT '{}'::jsonb,
+  reproduction_steps JSONB NOT NULL DEFAULT '[]'::jsonb,
+  fix_suggestion TEXT,
+  verified_at   TIMESTAMPTZ,
+  verification_note TEXT,
+  resolution_note TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_incidents_site ON incidents(site_id, started_at DESC);
+
+ALTER TABLE incidents ADD COLUMN IF NOT EXISTS title TEXT;
+ALTER TABLE incidents ADD COLUMN IF NOT EXISTS severity TEXT NOT NULL DEFAULT 'medium';
+ALTER TABLE incidents ADD COLUMN IF NOT EXISTS page_url TEXT;
+ALTER TABLE incidents ADD COLUMN IF NOT EXISTS screenshot_path TEXT;
+ALTER TABLE incidents ADD COLUMN IF NOT EXISTS evidence JSONB NOT NULL DEFAULT '{}'::jsonb;
+ALTER TABLE incidents ADD COLUMN IF NOT EXISTS diagnosis JSONB NOT NULL DEFAULT '{}'::jsonb;
+ALTER TABLE incidents ADD COLUMN IF NOT EXISTS reproduction_steps JSONB NOT NULL DEFAULT '[]'::jsonb;
+ALTER TABLE incidents ADD COLUMN IF NOT EXISTS fix_suggestion TEXT;
+ALTER TABLE incidents ADD COLUMN IF NOT EXISTS verified_at TIMESTAMPTZ;
+ALTER TABLE incidents ADD COLUMN IF NOT EXISTS verification_note TEXT;
+ALTER TABLE incidents ADD COLUMN IF NOT EXISTS resolution_note TEXT;
 
 -- ALERT_CHANNELS: how to notify users
 CREATE TABLE IF NOT EXISTS alert_channels (
@@ -100,3 +130,7 @@ END $$;
 -- REALTIME: enable live status updates on dashboard
 ALTER PUBLICATION supabase_realtime ADD TABLE monitored_sites;
 ALTER PUBLICATION supabase_realtime ADD TABLE incidents;
+
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('incident-screenshots', 'incident-screenshots', true)
+ON CONFLICT (id) DO NOTHING;

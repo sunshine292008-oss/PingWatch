@@ -1,12 +1,12 @@
-# Cloudflare Pages Deployment Script for PingWatch Web
+# Cloudflare Pages Deployment Script for AutoTrace Web
 param (
-    [string]$ProjectName = "pingwatch-web"
+    [string]$ProjectName = "autotrace-web"
 )
 
 $ErrorActionPreference = "Stop"
 
 Write-Host "Building Next.js app with @cloudflare/next-on-pages..." -ForegroundColor Yellow
-Set-Location "$PSScriptRoot/../apps/web"
+Set-Location "$PSScriptRoot/../node_modules/apps/web"
 
 npx @cloudflare/next-on-pages
 
